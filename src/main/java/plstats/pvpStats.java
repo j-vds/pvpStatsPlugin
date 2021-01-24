@@ -16,7 +16,7 @@ import mindustry.world.blocks.storage.CoreBlock;
 public class pvpStats extends Plugin {
     private long minScoreTime = 90000L;
     private long rageTime = 60000L; // 60 seconds
-    private long teamSwitchScore = 30000L; // if you switch 30 seconds before your team loses a core you still gets deducted some points
+    private long teamSwitchScore = 30000L; // if you switch 30 seconds before your team loses a core you still get deducted some points
 
     public ObjectIntMap<String> playerPoints; // UUID - INTEGER
     public ObjectMap<String, timePlayerInfo> playerInfo;
@@ -28,6 +28,7 @@ public class pvpStats extends Plugin {
     public pvpStats(){
         dS = new dataStorage();
         playerPoints = dS.getData();
+        playerInfo = new ObjectMap<>();
 
         Events.on(PlayerConnect.class, event ->{
         //change the name of the player
@@ -37,20 +38,21 @@ public class pvpStats extends Plugin {
 
         Events.on(PlayerJoin.class, event -> {
             //save the timer!
-            event.player.sendMessage("[orange] alpha version[white] - The number before your name equals your PVP points[]");
+            event.player.sendMessage("[orange] alpha version[white] - The number before your name equals your PVP score[]");
             playerInfo.put(event.player.uuid(), new timePlayerInfo(event.player));
-        });
-
-        Events.on(EventType.UnitChangeEvent.class, event -> {
-            //event.player.sendMessage(event.player.unit().team().name);
         });
 
         Events.on(PlayerLeave.class, event -> {
             //save the timer!
             playerInfo.get(event.player.uuid()).left();
-
         });
 
+        //detect if player changes team via a chatcommand
+        Events.on(PlayerChatEvent.class, event ->{
+            if(event.message.split("\\s+")[0].equals("/team")){
+                playerInfo.get(event.player.uuid()).teamChange(event.player.team());
+            }
+        });
 
         Events.on(EventType.BlockDestroyEvent.class, event -> {
            if(event.tile.build instanceof CoreBlock.CoreBuild && !Vars.state.gameOver){
@@ -70,7 +72,8 @@ public class pvpStats extends Plugin {
             Log.info(String.format("Winner %s",event.winner));
             //new map
             //updatePoints(event.winner, 1, -1, true);
-
+            //clear player history after 3 seconds
+            Timer.schedule(() -> playerInfo.values().forEach(pt -> pt.reset()),3f);
         });
     }
 

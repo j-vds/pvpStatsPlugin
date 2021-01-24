@@ -13,12 +13,13 @@ public class timePlayerInfo {
     Team lastTeam;
 
     ObjectMap<Team, Long> teamTimer;
-    Seq<Team> teamHistory;
+    //Seq<Team> teamHistory;
 
     public timePlayerInfo(Player p){
         this.p = p;
         this.joined = System.currentTimeMillis();
         this.lastTeam = p.team();
+        this.teamTimer = new ObjectMap<>();
     }
 
     public void left(){
@@ -59,9 +60,20 @@ public class timePlayerInfo {
         }
     }
 
+    // call this last
+    public boolean teamSwitchEvade(long threshold, Team lostTeam){
+        if(!teamTimer.containsKey(lostTeam)){
+            return false;
+        }else if(teamTimer.get(lostTeam) + threshold > System.currentTimeMillis()){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
     public boolean teamChange(Team t){
         if(t != lastTeam){
-            teamHistory.insert(0, lastTeam);
+            //teamHistory.insert(0, lastTeam);
             teamTimer.put(lastTeam, System.currentTimeMillis());
             lastTeam = t;
             return true;
@@ -70,5 +82,9 @@ public class timePlayerInfo {
         }
     }
 
-    
+    public void reset(){
+        teamTimer.clear();
+        lastTeam = null;
+    }
+
 }

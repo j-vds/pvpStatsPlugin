@@ -13,7 +13,7 @@ public class timePlayerInfo {
     Team lastTeam;
 
     ObjectMap<Team, Long> teamTimer;
-    Seq<Team> teamEvolution;
+    Seq<Team> teamHistory;
 
     public timePlayerInfo(Player p){
         this.p = p;
@@ -23,6 +23,22 @@ public class timePlayerInfo {
 
     public void left(){
         this.left = System.currentTimeMillis();
+    }
+
+    public String getUUID(){
+        return this.p.uuid();
+    }
+
+    public Team team(){
+        return this.p.team(); //should become lastteam in the future
+    }
+
+    public String name(){
+        return this.p.name();
+    }
+
+    public void name(String n){
+        this.p.name(n);
     }
 
     // call this first
@@ -43,15 +59,16 @@ public class timePlayerInfo {
         }
     }
 
-
-
     public boolean teamChange(Team t){
         if(t != lastTeam){
-
+            teamHistory.insert(0, lastTeam);
+            teamTimer.put(lastTeam, System.currentTimeMillis());
             lastTeam = t;
             return true;
         }else{
             return false;
         }
     }
+
+    
 }

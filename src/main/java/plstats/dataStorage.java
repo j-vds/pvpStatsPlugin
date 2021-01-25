@@ -4,6 +4,7 @@ package plstats;
 import arc.Core;
 import arc.files.Fi;
 import arc.struct.ObjectIntMap;
+import arc.struct.ObjectMap;
 import arc.util.Log;
 import arc.util.Timer;
 import org.json.JSONArray;
@@ -15,7 +16,11 @@ import java.nio.file.Paths;
 
 //all the IO methods
 public class dataStorage {
-    private static int VERSION = 1;
+    private static int VERSION = 2;
+
+    private long minScoreTime = 30000L;
+    private long rageTime = 45000L; // 45 seconds
+    private long teamSwitchScore = 30000L;
 
     private static String diPath = "stats";
     private static String fileName = "pvpStats.json";
@@ -62,6 +67,28 @@ public class dataStorage {
         return ret;
     }
 
+    public ObjectMap<String, Long> getTimings(){
+        Log.info("[pvpStats] Getting Timings");
+        ObjectMap<String, Long> ret = new ObjectMap<>();
+        if(pvpStats.has("minScoreTime")) {
+            ret.put("minScoreTime", pvpStats.getLong("minScoreTime"));
+        }
+        ret.put("minScoreTime", minScoreTime);
+
+        if(pvpStats.has("rageTime")) {
+            ret.put("rageTime", pvpStats.getLong("rageTime"));
+            this.rageTime = pvpStats.getLong("rageTime");
+        }
+        ret.put("rageTime", this.rageTime);
+
+        if(pvpStats.has("teamSwitchScore")) {
+            ret.put("teamSwitchScore", this.pvpStats.getLong("teamSwitchScore"));
+        }
+        ret.put("teamSwitchScore", this.teamSwitchScore);
+
+        return ret;
+    }
+
 
     public void makeFile(){
         Log.info("[pvpStats] CREATING JSON FILE");
@@ -74,8 +101,13 @@ public class dataStorage {
         JSONObject entry1 = new JSONObject();
         entry1.put("name", "TEST").put("points",5);
         _stats.put(entry1);
-        pvpStats.put("version", 1);
+
         pvpStats.put("pvpstats", _stats);
+
+        pvpStats.put("version", VERSION);
+        pvpStats.put("minScoreTime", minScoreTime);
+        pvpStats.put("rageTime", rageTime);
+        pvpStats.put("teamSwitchScore", teamSwitchScore);
 
         //make file
         try {
@@ -112,6 +144,11 @@ public class dataStorage {
         }
         updatedStats.put("pvpstats", statsArray);
 
+        updatedStats.put("version", VERSION);
+        updatedStats.put("minScoreTime", minScoreTime);
+        updatedStats.put("rageTime", rageTime);
+        updatedStats.put("teamSwitchScore", teamSwitchScore);
+
         //make file
         try {
             Files.write(Paths.get(path), updatedStats.toString().getBytes());
@@ -129,12 +166,19 @@ public class dataStorage {
         }
     }
 
-    public void writeBackUp(String path) {
+    public void writeBackUp(String path){
         Log.info("[pvpStats] writing BACKUP of pvpstats...");
         try {
             Files.write(Paths.get(path), pvpStats.toString().getBytes());
         }catch (Exception e){
             Log.info("[pvpStats] Failed to make back up json file.");
         }
+    }
+
+    public ObjectMap<String, Long> reloadTimings(){
+        //load data
+        String pureJSON = new Fi(totalPath).readString();
+        pvpStats = new JSONObject(new JSONTokener(pureJSON));
+        return getTimings();
     }
 }

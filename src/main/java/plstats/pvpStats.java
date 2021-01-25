@@ -11,12 +11,13 @@ import mindustry.game.EventType.*;
 import mindustry.game.Team;
 import mindustry.gen.*;
 import mindustry.mod.Plugin;
+import mindustry.net.Administration;
 import mindustry.world.blocks.storage.CoreBlock;
 
 public class pvpStats extends Plugin {
-    private long minScoreTime = 90000L;
-    private long rageTime = 45000L; // 45 seconds
-    private long teamSwitchScore = 30000L; // if you switch 30 seconds before your team loses a core you still get deducted some points
+    private long minScoreTime;
+    private long rageTime; // 45 seconds
+    private long teamSwitchScore; // if you switch 30 seconds before your team loses a core you still get deducted some points
 
     public ObjectIntMap<String> playerPoints; // UUID - INTEGER
     public ObjectMap<String, timePlayerInfo> playerInfo;
@@ -29,6 +30,7 @@ public class pvpStats extends Plugin {
         dS = new dataStorage();
         playerPoints = dS.getData();
         playerInfo = new ObjectMap<>();
+        loadTimings(dS.getTimings());
 
         Events.on(PlayerConnect.class, event ->{
         //change the name of the player
@@ -68,6 +70,14 @@ public class pvpStats extends Plugin {
            }
         });
 
+        Events.on(WorldLoadEvent.class, event -> {
+            Timer.schedule(()->{
+                for(timePlayerInfo PI : playerInfo.values()){
+                    PI.setTeam();
+                }
+            }, 1f);
+        });
+
         Events.on(EventType.GameOverEvent.class, event -> {
             Log.info(String.format("Winner %s",event.winner));
             //new map
@@ -84,6 +94,18 @@ public class pvpStats extends Plugin {
     public void registerServerCommands(CommandHandler handler){
         handler.register("writestats", "update the json stats file", (args)->{
            Core.app.post(() -> dS.writeData(playerPoints));
+        });
+
+        handler.register("pvp_timers","[update/show]", "update the timings", (args)->{
+            if(args.length == 1) {
+                if(args[0].equals("update")){
+                    Log.info("[pvpStats] updating timings...");
+                    loadTimings(dS.reloadTimings());
+                }
+            }
+            Log.info("ragetime: @ seconds", (int)(rageTime/1000L));
+            Log.info("minScoreTime: @ seconds", (int)(minScoreTime/1000L));
+            Log.info("teamSwitchScore: @ seconds", (int)(teamSwitchScore/1000L));
 
         });
 
@@ -93,35 +115,62 @@ public class pvpStats extends Plugin {
     @Override
     public void registerClientCommands(CommandHandler handler){
         /*
-        handler.<Player>register("forceteam", "[team] [transfer_players]","[scarlet]Admin only[] For info use the command without arguments.", (args, player) -> {
-                if(!player.admin()){
-                    player.sendMessage("[scarlet]Admin only");
-                    return;
+        handler.<Player>register("lb", "show top 10", (args, player) -> {
+            StringBuilder sb = new StringBuilder();
+            sb.append("[gold]--- Standings ---[]\n");
+            ObjectMap<Integer, Seq<String>> sortMap = new ObjectMap<>();
+            Seq<String> tussenresult;
+            for(String uuid: playerPoints.keys()){
+                tussenresult = sortMap.get(playerPoints.get(uuid), new Seq<>());
+                tussenresult.add(uuid);
+                sortMap.put(playerPoints.get(uuid), tussenresult);
+            }
+            Seq<Integer> sortedValues = sortMap.keys().toSeq().sort();
+            int count = 1;
+            for(int i : sortedValues){
+                Log.info(i);
+                for(String s:sortMap.get(i)){
+                    Log.info(s);
+                    sb.append("[green]").append(count).append("[][white] : []").append(playerInfo.get(s).name()).append("\n");
+                    count++;
+                    if(count > 10){break;}
                 }
+                if(count > 10){break;}
+            }
+            Call.infoMessage(player.con(), sb.toString());
+
         });
 
          */
     }
 
+    private void loadTimings(ObjectMap<String, Long> timings){
+        minScoreTime = timings.get("minScoreTime");
+        rageTime = timings.get("rageTime");
+        teamSwitchScore = timings.get("teamSwitchScore");
+    }
+
     private void updatePoints(Team selectTeam, int addSelect, int addOther, boolean write){
         Seq<Team> validTeams = new Seq<>();
-        //Seq<Player> allPlayers = new Seq<>().with(Groups.player);
         timePlayerInfo t;
         Seq<String> tbremoved = new Seq<>();
         for(String uuid: playerInfo.keys()){
             t = playerInfo.get(uuid);
             //long enough on the server
             if(!t.canUpdate(minScoreTime)){
+                System.out.println("cant update");
                 continue;
             }
-            // if the player left on purpose
-            if(!t.rageQuit(rageTime)){
+            // if the player left
+            if(!t.rageQuit(rageTime) && !t.playing){
+                System.out.println("left");
                 tbremoved.add(uuid);
                 //playerInfo.remove(uuid);
                 continue;
             }
 
             if(t.team() == selectTeam){
+                System.out.println("loser points");
                 playerPoints.put(uuid, playerPoints.get(uuid,0)+addSelect);
             }else{
                 //check evasion!
@@ -131,9 +180,11 @@ public class pvpStats extends Plugin {
                 }else{
                     if(validTeams.contains(t.team())) {
                         playerPoints.put(uuid, playerPoints.get(uuid,0)+addOther);
+                        System.out.println("winner points");
                     }else{
                         //check if valid
                         if(t.team().cores().size > 0){
+                            System.out.println("winner points");
                             validTeams.add(t.team());
                             playerPoints.put(uuid, playerPoints.get(uuid, 0)+addOther);
                         }
@@ -143,7 +194,7 @@ public class pvpStats extends Plugin {
             }
             // UPDATE PLAYER NAMES
             String oldName = t.name().substring(t.name().indexOf("#")+1);
-            t.name(String.format("[sky]%d [][white]#[] %s", playerPoints.get(uuid, 0), oldName));
+            t.name(String.format("[sky]%d [][white]#[]%s", playerPoints.get(uuid, 0), oldName));
         }
         tbremoved.forEach(u -> playerInfo.remove(u));
 

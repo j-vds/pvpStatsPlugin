@@ -10,6 +10,7 @@ public class timePlayerInfo {
 
     long joined;
     long left;
+    boolean playing;
     Team lastTeam;
 
     ObjectMap<Team, Long> teamTimer;
@@ -20,10 +21,12 @@ public class timePlayerInfo {
         this.joined = System.currentTimeMillis();
         this.lastTeam = p.team();
         this.teamTimer = new ObjectMap<>();
+        this.playing = true;
     }
 
     public void left(){
         this.left = System.currentTimeMillis();
+        this.playing = false;
     }
 
     public String getUUID(){
@@ -53,6 +56,9 @@ public class timePlayerInfo {
 
     // call this second
     public boolean rageQuit(long threshold){
+        if(playing){
+            return false;
+        }
         if(left + threshold > System.currentTimeMillis()){
             return true;
         }else{
@@ -76,6 +82,7 @@ public class timePlayerInfo {
             //teamHistory.insert(0, lastTeam);
             teamTimer.put(lastTeam, System.currentTimeMillis());
             lastTeam = t;
+            System.out.println(teamTimer.toString());
             return true;
         }else{
             return false;
@@ -85,6 +92,12 @@ public class timePlayerInfo {
     public void reset(){
         teamTimer.clear();
         lastTeam = null;
+    }
+
+    public void setTeam(){
+        if(playing){
+            lastTeam = p.team();
+        }
     }
 
 }

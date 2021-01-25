@@ -107,6 +107,7 @@ public class pvpStats extends Plugin {
         Seq<Team> validTeams = new Seq<>();
         //Seq<Player> allPlayers = new Seq<>().with(Groups.player);
         timePlayerInfo t;
+        Seq<String> tbremoved = new Seq<>();
         for(String uuid: playerInfo.keys()){
             t = playerInfo.get(uuid);
             //long enough on the server
@@ -115,7 +116,8 @@ public class pvpStats extends Plugin {
             }
             // if the player left on purpose
             if(!t.rageQuit(rageTime)){
-                playerInfo.remove(uuid);
+                tbremoved.add(uuid);
+                //playerInfo.remove(uuid);
                 continue;
             }
 
@@ -143,6 +145,8 @@ public class pvpStats extends Plugin {
             String oldName = t.name().substring(t.name().indexOf("#")+1);
             t.name(String.format("[sky]%d [][white]#[] %s", playerPoints.get(uuid, 0), oldName));
         }
+        tbremoved.forEach(u -> playerInfo.remove(u));
+
         if(write){
             Core.app.post(() -> dS.writeData(playerPoints));
         }

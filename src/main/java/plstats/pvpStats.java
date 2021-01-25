@@ -72,6 +72,8 @@ public class pvpStats extends Plugin {
             Log.info(String.format("Winner %s",event.winner));
             //new map
             //updatePoints(event.winner, 1, -1, true);
+            //update the JSON file
+            Core.app.post(() -> dS.writeData(playerPoints));
             //clear player history after 3 seconds
             Timer.schedule(() -> playerInfo.values().forEach(pt -> pt.reset()),3f);
         });

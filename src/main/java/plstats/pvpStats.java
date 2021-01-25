@@ -15,7 +15,7 @@ import mindustry.world.blocks.storage.CoreBlock;
 
 public class pvpStats extends Plugin {
     private long minScoreTime = 90000L;
-    private long rageTime = 60000L; // 60 seconds
+    private long rageTime = 45000L; // 45 seconds
     private long teamSwitchScore = 30000L; // if you switch 30 seconds before your team loses a core you still get deducted some points
 
     public ObjectIntMap<String> playerPoints; // UUID - INTEGER
@@ -33,7 +33,7 @@ public class pvpStats extends Plugin {
         Events.on(PlayerConnect.class, event ->{
         //change the name of the player
             int points = playerPoints.get(event.player.uuid(),0);
-            event.player.name(String.format("[sky]%d [white]#[] %s", points, event.player.name()));
+            event.player.name(String.format("[sky]%d [][white]#[] %s", points, event.player.name()));
         });
 
         Events.on(PlayerJoin.class, event -> {
@@ -120,19 +120,26 @@ public class pvpStats extends Plugin {
             if(t.team() == selectTeam){
                 playerPoints.put(uuid, playerPoints.get(uuid,0)+addSelect);
             }else{
-                if(validTeams.contains(t.team())) {
-                    playerPoints.put(uuid, playerPoints.get(uuid,0)+addOther);
+                //check evasion!
+                if(t.teamSwitchEvade(teamSwitchScore, selectTeam)){
+                    Log.info("[pvpstats] player changed teams to get points ...");
+                    playerPoints.put(uuid, playerPoints.get(uuid,0)+addSelect);
                 }else{
-                    //check if valid
-                    if(t.team().cores().size > 0){
-                        validTeams.add(t.team());
-                        playerPoints.put(uuid, playerPoints.get(uuid, 0)+addOther);
+                    if(validTeams.contains(t.team())) {
+                        playerPoints.put(uuid, playerPoints.get(uuid,0)+addOther);
+                    }else{
+                        //check if valid
+                        if(t.team().cores().size > 0){
+                            validTeams.add(t.team());
+                            playerPoints.put(uuid, playerPoints.get(uuid, 0)+addOther);
+                        }
                     }
+
                 }
             }
             // UPDATE PLAYER NAMES
             String oldName = t.name().substring(t.name().indexOf("#")+1);
-            t.name(String.format("[sky]%d [white]#[] %s", playerPoints.get(uuid, 0), oldName));
+            t.name(String.format("[sky]%d [][white]#[] %s", playerPoints.get(uuid, 0), oldName));
         }
         if(write){
             Core.app.post(() -> dS.writeData(playerPoints));

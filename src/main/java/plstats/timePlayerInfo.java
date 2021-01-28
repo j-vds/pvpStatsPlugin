@@ -2,6 +2,7 @@ package plstats;
 
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
+import arc.util.Log;
 import mindustry.game.Team;
 import mindustry.gen.Player;
 
@@ -11,7 +12,7 @@ public class timePlayerInfo {
     long joined;
     long left;
     boolean playing;
-    Team lastTeam;
+    public Team lastTeam;
 
     ObjectMap<Team, Long> teamTimer;
     //Seq<Team> teamHistory;
@@ -47,7 +48,7 @@ public class timePlayerInfo {
 
     // call this first
     public boolean canUpdate(long threshold){
-        if(joined + threshold > System.currentTimeMillis()){
+        if(joined + threshold > System.currentTimeMillis()) {
             return false;
         }else{
             return true;
@@ -68,9 +69,11 @@ public class timePlayerInfo {
 
     // call this last
     public boolean teamSwitchEvade(long threshold, Team lostTeam){
+        System.out.println(teamTimer.toString());
         if(!teamTimer.containsKey(lostTeam)){
             return false;
         }else if(teamTimer.get(lostTeam) + threshold > System.currentTimeMillis()){
+            //Log.info("@ # @", teamTimer.get(lostTeam)+threshold, System.currentTimeMillis());
             return true;
         }else{
             return false;
@@ -79,10 +82,10 @@ public class timePlayerInfo {
 
     public boolean teamChange(Team t){
         if(t != lastTeam){
-            //teamHistory.insert(0, lastTeam);
+            System.out.println(lastTeam.name);
+            System.out.println("TEAMCHANGE");
             teamTimer.put(lastTeam, System.currentTimeMillis());
             lastTeam = t;
-            System.out.println(teamTimer.toString());
             return true;
         }else{
             return false;
@@ -94,9 +97,9 @@ public class timePlayerInfo {
         lastTeam = null;
     }
 
-    public void setTeam(){
+    public void setTeam(Team t){
         if(playing){
-            lastTeam = p.team();
+            lastTeam = t;
         }
     }
 

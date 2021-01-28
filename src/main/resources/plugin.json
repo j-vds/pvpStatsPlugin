@@ -3,5 +3,5 @@
   "author": "Fishbuilder",
   "main": "plstats.pvpStats",
   "description": "Show the amount of games won by a player!",
-  "version": 0.1
+  "version": 1.0
 }

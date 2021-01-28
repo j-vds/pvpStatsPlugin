@@ -37,17 +37,17 @@ public class dataStorage {
         totalPathBU = path.child(fileNameBU).absolutePath();
 
         if(path.exists()){
-            Log.info("[pvpStats] PATH EXISTS");
+            Log.info("<pvpStats> PATH EXISTS");
             //load data
             String pureJSON = path.child(fileName).readString();
             pvpStats = new JSONObject(new JSONTokener(pureJSON));
             //maybe can throw an error?
             if(!pvpStats.has("version")){
-                Log.info("[pvpStats] stats file had invalid version...");
+                Log.info("<pvpStats> stats file had invalid version...");
                 makeFile();
             }else if(pvpStats.getInt("version") < VERSION){
                 //stats file has invalid version
-                Log.info("[pvpStats] stats file had invalid version...");
+                Log.info("<pvpStats> stats file had invalid version...");
                 makeFile();
             }
         }else{
@@ -56,7 +56,7 @@ public class dataStorage {
     }
 
     public ObjectIntMap<String> getData(){
-        Log.info("[pvpStats] Get data...");
+        Log.info("<pvpStats> Get data...");
         ObjectIntMap<String> ret = new ObjectIntMap<String>();
         JSONArray da = pvpStats.getJSONArray("pvpstats");
         JSONObject iterObj;
@@ -68,10 +68,10 @@ public class dataStorage {
     }
 
     public ObjectMap<String, Long> getTimings(){
-        Log.info("[pvpStats] Getting Timings");
+        Log.info("<pvpStats> Getting Timings");
         ObjectMap<String, Long> ret = new ObjectMap<>();
         if(pvpStats.has("minScoreTime")) {
-            ret.put("minScoreTime", pvpStats.getLong("minScoreTime"));
+            this.minScoreTime = pvpStats.getLong("minScoreTime");
         }
         ret.put("minScoreTime", minScoreTime);
 
@@ -82,7 +82,8 @@ public class dataStorage {
         ret.put("rageTime", this.rageTime);
 
         if(pvpStats.has("teamSwitchScore")) {
-            ret.put("teamSwitchScore", this.pvpStats.getLong("teamSwitchScore"));
+            this.teamSwitchScore = pvpStats.getLong("teamSwitchScore");
+
         }
         ret.put("teamSwitchScore", this.teamSwitchScore);
 
@@ -91,7 +92,7 @@ public class dataStorage {
 
 
     public void makeFile(){
-        Log.info("[pvpStats] CREATING JSON FILE");
+        Log.info("<pvpStats> CREATING JSON FILE");
         Fi directory = Core.settings.getDataDirectory().child(diPath);
         if(!directory.isDirectory()){
             directory.mkdirs();
@@ -113,7 +114,7 @@ public class dataStorage {
         try {
             Files.write(Paths.get(totalPath), pvpStats.toString().getBytes());
         }catch (Exception e){
-            Log.info("[pvpStats] Failed to make .json file.");
+            Log.info("<pvpStats> Failed to make .json file.");
         }
     }
 
@@ -124,7 +125,7 @@ public class dataStorage {
 
 
     public void writeData(String path, ObjectIntMap<String> data){
-        Log.info("[pvpStats] writing data...");
+        Log.info("<pvpStats> writing data...");
         //ObjectIntMap -->
 
         while(this.writing){
@@ -132,7 +133,7 @@ public class dataStorage {
             try{
                 Thread.sleep(1000L);
             }catch(Exception e){
-                Log.info("[pvpStats] Writing exception!");
+                Log.info("<pvpStats> Writing exception!");
             }
         }
         this.writing = true;
@@ -153,11 +154,11 @@ public class dataStorage {
         try {
             Files.write(Paths.get(path), updatedStats.toString().getBytes());
         }catch (Exception e){
-            Log.info("[pvpStats] Failed to make .json file.");
+            Log.info("<pvpStats> Failed to make .json file.");
         }
         pvpStats = updatedStats;
         this.writing = false;
-        Log.info("[pvpStats] writing done");
+        Log.info("<pvpStats> writing done");
         if(writeCount > 10){
             writeCount = 0;
             writeBackUp(totalPathBU);
@@ -167,11 +168,11 @@ public class dataStorage {
     }
 
     public void writeBackUp(String path){
-        Log.info("[pvpStats] writing BACKUP of pvpstats...");
+        Log.info("<pvpStats> writing BACKUP of pvpstats...");
         try {
             Files.write(Paths.get(path), pvpStats.toString().getBytes());
         }catch (Exception e){
-            Log.info("[pvpStats] Failed to make back up json file.");
+            Log.info("<pvpStats> Failed to make back up json file.");
         }
     }
 

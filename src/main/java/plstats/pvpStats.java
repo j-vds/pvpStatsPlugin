@@ -40,27 +40,30 @@ public class pvpStats extends Plugin {
 
         Events.on(PlayerJoin.class, event -> {
             //save the timer!
-            event.player.sendMessage("[orange] alpha version[white] - The number before your name equals your PVP score[]");
+            event.player.sendMessage("[gold] Beta version[][white] - The number before your name equals your PVP score[]");
             playerInfo.put(event.player.uuid(), new timePlayerInfo(event.player));
         });
 
         Events.on(PlayerLeave.class, event -> {
             //save the timer!
-            playerInfo.get(event.player.uuid()).left();
+            timePlayerInfo tpi = playerInfo.get(event.player.uuid());
+            tpi.left();
+            //check if player played long enough
+            if(!tpi.canUpdate(minScoreTime)){
+               playerInfo.remove(event.player.uuid());
+            }
         });
 
         //detect if player changes team via a chatcommand
         Events.on(PlayerChatEvent.class, event ->{
-            if(event.message.split("\\s+")[0].equals("/team")){
+            //if(event.message.split("\\s+")[0].equals("/team")){
                 playerInfo.get(event.player.uuid()).teamChange(event.player.team());
-            }
+            //}
         });
 
         Events.on(EventType.BlockDestroyEvent.class, event -> {
            if(event.tile.build instanceof CoreBlock.CoreBuild && !Vars.state.gameOver){
-               Log.info("Core destroyed");
-               System.out.println(event.tile.build.team);
-               System.out.println(event.tile.build.team.cores().size);
+               Log.info("Core destroyed @ ", event.tile.build.team);
                if(event.tile.build.team.cores().size <= 1){
                    Call.sendMessage(String.format("[gold] %s lost...", event.tile.build.team.name));
                    //other player get a point
@@ -72,10 +75,10 @@ public class pvpStats extends Plugin {
 
         Events.on(WorldLoadEvent.class, event -> {
             Timer.schedule(()->{
-                for(timePlayerInfo PI : playerInfo.values()){
-                    PI.setTeam();
+                for(Player p: Groups.player.copy(new Seq<>())){
+                    playerInfo.get(p.uuid()).setTeam(p.team());
                 }
-            }, 1f);
+            }, 1.5f);
         });
 
         Events.on(EventType.GameOverEvent.class, event -> {
@@ -99,7 +102,7 @@ public class pvpStats extends Plugin {
         handler.register("pvp_timers","[update/show]", "update the timings", (args)->{
             if(args.length == 1) {
                 if(args[0].equals("update")){
-                    Log.info("[pvpStats] updating timings...");
+                    Log.info("<pvpStats> updating timings...");
                     loadTimings(dS.reloadTimings());
                 }
             }
@@ -175,7 +178,7 @@ public class pvpStats extends Plugin {
             }else{
                 //check evasion!
                 if(t.teamSwitchEvade(teamSwitchScore, selectTeam)){
-                    Log.info("[pvpstats] player changed teams to get points ...");
+                    Log.info("<pvpStats> player @ changed teams to get points ...", t.name());
                     playerPoints.put(uuid, playerPoints.get(uuid,0)+addSelect);
                 }else{
                     if(validTeams.contains(t.team())) {

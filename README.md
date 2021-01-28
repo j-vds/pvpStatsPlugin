@@ -3,7 +3,7 @@
 <br/> Originally made for the mindustry.pl server.
 
 ### Concept
-If a core gets destroyed all the other teams get a point. If your core gets destroyed, you will lose a point.
+If a team is lost all the other teams get a point. If your core gets destroyed, you will lose a point.
 ![](https://github.com/J-VdS/pvpStatsPlugin/blob/master/name.PNG)<br/>
 The amount of points you have will be printed in front of your name.
  

@@ -3,21 +3,25 @@
 <br/> Originally made for the mindustry.pl server.
 
 ### Concept
-IMAGE
-
+If a core gets destroyed all the other teams get a point. If your core gets destroyed, you will lose a point.
+![](https://github.com/J-VdS/pvpStatsPlugin/blob/master/name.PNG)
+The amount of points you have will be printed in front of your name.
+ 
+If a gameover occurs all the data will be written to a .json file.
 
 ### Terminal commands
 * `writestats` --> dumps the data in a .json file
 * `pvp_timers [update/show]` --> shows the timers
 #### Timers (all in ms)
 * `rageTime`: if a player is about to lose and leaves (ragequits) he still can lose points. (If a player leaves but was about to win will gain a point.) 
+* `minScoreTime`: a player needs to play at least this amount of time to be able to gain/lose points.
+* `teamSwitchScore`: if a player changes teams to get some points or prevent to lose some points he could change teams. BUT: in this time period he will still be able to get points deducted!
 
 ### Commands
 There are no commands for normal players.
 
 ### Admin Only commands
 There are no commands for admins.
-
 
 ### Feedback
 Open an issue if you have a suggestion.

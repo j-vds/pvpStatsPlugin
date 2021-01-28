@@ -4,7 +4,7 @@
 
 ### Concept
 If a core gets destroyed all the other teams get a point. If your core gets destroyed, you will lose a point.
-![](https://github.com/J-VdS/pvpStatsPlugin/blob/master/name.PNG)
+![](https://github.com/J-VdS/pvpStatsPlugin/blob/master/name.PNG)<br/>
 The amount of points you have will be printed in front of your name.
  
 If a gameover occurs all the data will be written to a .json file.

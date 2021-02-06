@@ -1,8 +1,6 @@
 package plstats;
 
 import arc.struct.ObjectMap;
-import arc.struct.Seq;
-import arc.util.Log;
 import mindustry.game.Team;
 import mindustry.gen.Player;
 
@@ -81,7 +79,10 @@ public class timePlayerInfo {
     }
 
     public boolean teamChange(Team t){
-        if(t != lastTeam){
+        if(lastTeam == null){
+            lastTeam = t;
+            return false;
+        }else if(t != lastTeam){
             System.out.println(lastTeam.name);
             System.out.println("TEAMCHANGE");
             teamTimer.put(lastTeam, System.currentTimeMillis());

@@ -18,9 +18,10 @@ public class pvpStats extends Plugin {
     private long rageTime; // 45 seconds
     private long teamSwitchScore; // if you switch 30 seconds before your team loses a core you still get deducted some points
 
-    public ObjectIntMap<String> playerPoints; // UUID - INTEGER
-    public ObjectMap<String, timePlayerInfo> playerInfo;
-    public dataStorage dS;
+    private ObjectIntMap<String> playerPoints; // UUID - INTEGER
+    private ObjectMap<String, timePlayerInfo> playerInfo;
+    private ObjectMap<String, String> uuidBackUp;
+    private dataStorage dS;
 
     //private ObjectMap<Player, Team> rememberSpectate = new ObjectMap<>();
 
@@ -29,28 +30,42 @@ public class pvpStats extends Plugin {
         dS = new dataStorage();
         playerPoints = dS.getData();
         playerInfo = new ObjectMap<>();
+        uuidBackUp = new ObjectMap<>();
         loadTimings(dS.getTimings());
 
+        //before player joins
         Events.on(PlayerConnect.class, event ->{
         //change the name of the player
             int points = playerPoints.get(event.player.uuid(),0);
             event.player.name(String.format("[sky]%d [][white]#[] %s", points, event.player.name()));
         });
 
+        //players joins
         Events.on(PlayerJoin.class, event -> {
             //save the timer!
             event.player.sendMessage("[gold] Beta version[][white] - The number before your name equals your PVP score[]");
             playerInfo.put(event.player.uuid(), new timePlayerInfo(event.player));
+
+            uuidBackUp.put(event.player.name().substring(event.player.name().indexOf("#")+1), event.player.uuid());
         });
 
         Events.on(PlayerLeave.class, event -> {
             //save the timer!
             timePlayerInfo tpi = playerInfo.get(event.player.uuid());
+            if(tpi == null){
+                tpi = changedUUID(event.player);
+                if(tpi == null){
+                    Log.info("<pvpStats> UUID backup failed");
+                    return;
+                }
+            }
             tpi.left();
             //check if player played long enough
             if(!tpi.canUpdate(minScoreTime)){
                playerInfo.remove(event.player.uuid());
             }
+
+            uuidBackUp.remove(event.player.name().substring(event.player.name().indexOf("#")+1));
         });
 
         //detect if player changes team via a chatcommand
@@ -74,8 +89,19 @@ public class pvpStats extends Plugin {
 
         Events.on(WorldLoadEvent.class, event -> {
             Timer.schedule(()->{
+                timePlayerInfo tpi;
                 for(Player p: Groups.player.copy(new Seq<>())){
-                    playerInfo.get(p.uuid()).setTeam(p.team());
+                    tpi = playerInfo.get(p.uuid());
+                    if(tpi == null){
+                        //player changed his uuid
+                        tpi = changedUUID(p);
+                        if(tpi == null){
+                            Log.info("<pvpStats> Kicked @ because he changed his UUID", p.name);
+                            Call.kick(p.con, "changed UUID mid game\n[sky]Go to discord for more info...");
+                        }
+                    }
+
+                    tpi.setTeam(p.team());
                 }
             }, 1.5f);
         });
@@ -203,5 +229,28 @@ public class pvpStats extends Plugin {
         if(write){
             Core.app.post(() -> dS.writeData(playerPoints));
         }
+    }
+
+    private timePlayerInfo changedUUID(Player p){
+        Log.info("<pvpStats> UUID changed - Possible hacker: @", p.name);
+        //check for the name of a player
+
+        String oldName = p.name().substring(p.name().indexOf("#")+1);
+        if(!uuidBackUp.containsKey(oldName)){
+            return null;
+        }
+        //fix uuid
+        String oldUUID = uuidBackUp.get(oldName);
+        timePlayerInfo tpi = playerInfo.get(oldUUID);
+        //get oldPoints
+        int oldPoints = playerPoints.remove(oldUUID,0);
+        //update hashmap
+        String newUUID = p.uuid();
+        playerPoints.put(newUUID, oldPoints);
+        playerInfo.put(newUUID, tpi);
+        uuidBackUp.put(oldName, newUUID);
+        //clear the old value
+        playerInfo.remove(oldUUID);
+        return tpi;
     }
 }

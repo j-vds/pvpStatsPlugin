@@ -18,7 +18,7 @@ If a gameover occurs all the data will be written to a .json file.
 * `teamSwitchScore`: if a player changes teams to get some points or prevent to lose some points he could change teams. BUT: in this time period he will still be able to get points deducted!
 
 ### Commands
-There are no commands for normal players.
+`/lb` This will show the top 10 including your current position.
 
 ### Admin Only commands
 There are no commands for admins.

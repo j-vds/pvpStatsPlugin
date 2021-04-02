@@ -11,7 +11,10 @@ import mindustry.game.EventType.*;
 import mindustry.game.Team;
 import mindustry.gen.*;
 import mindustry.mod.Plugin;
+import mindustry.net.Administration;
 import mindustry.world.blocks.storage.CoreBlock;
+
+import java.util.Comparator;
 
 public class pvpStats extends Plugin {
     private long minScoreTime;
@@ -22,6 +25,9 @@ public class pvpStats extends Plugin {
     private ObjectMap<String, timePlayerInfo> playerInfo;
     private ObjectMap<String, String> uuidBackUp;
     private dataStorage dS;
+
+    public Seq<TTriple<String, Integer, String>> lb_array = new Seq<>();
+    private int TOPPLAYERAMOUNT = 10;
 
     //private ObjectMap<Player, Team> rememberSpectate = new ObjectMap<>();
 
@@ -104,6 +110,10 @@ public class pvpStats extends Plugin {
                     tpi.setTeam(p.team());
                 }
             }, 1.5f);
+
+            //sort leaderboard
+            Log.info("<pvpStats> update leaderboard");
+            Core.app.post(() -> sortLeaderboard());
         });
 
         Events.on(EventType.GameOverEvent.class, event -> {
@@ -113,7 +123,7 @@ public class pvpStats extends Plugin {
             //update the JSON file
             Core.app.post(() -> dS.writeData(playerPoints));
             //clear player history after 3 seconds
-            Timer.schedule(() -> playerInfo.values().forEach(pt -> pt.reset()),3f);
+            Timer.schedule(() -> playerInfo.values().forEach(timePlayerInfo::reset),3f);
         });
     }
 
@@ -142,34 +152,23 @@ public class pvpStats extends Plugin {
     //register commands that player can invoke in-game
     @Override
     public void registerClientCommands(CommandHandler handler){
-        /*
-        handler.<Player>register("lb", "show top 10", (args, player) -> {
+        handler.<Player>register("lb", "show top 10", (args, player)->{
+            //first step filter the objectmap --> to secure performance only do this once after "gameover"
+            //should be done directly
             StringBuilder sb = new StringBuilder();
-            sb.append("[gold]--- Standings ---[]\n");
-            ObjectMap<Integer, Seq<String>> sortMap = new ObjectMap<>();
-            Seq<String> tussenresult;
-            for(String uuid: playerPoints.keys()){
-                tussenresult = sortMap.get(playerPoints.get(uuid), new Seq<>());
-                tussenresult.add(uuid);
-                sortMap.put(playerPoints.get(uuid), tussenresult);
+            sb.append("[green]-*- Leaderboard -*-[]\n");
+            for (int i=0; i < TOPPLAYERAMOUNT; i++){
+                sb.append(String.format("%d : %s[][][][][] @ %d\n", i+1, lb_array.get(i).getThird(), lb_array.get(i).getSecond()));
             }
-            Seq<Integer> sortedValues = sortMap.keys().toSeq().sort();
-            int count = 1;
-            for(int i : sortedValues){
-                Log.info(i);
-                for(String s:sortMap.get(i)){
-                    Log.info(s);
-                    sb.append("[green]").append(count).append("[][white] : []").append(playerInfo.get(s).name()).append("\n");
-                    count++;
-                    if(count > 10){break;}
-                }
-                if(count > 10){break;}
-            }
-            Call.infoMessage(player.con(), sb.toString());
 
+            int index = lb_array.indexOf(a -> a.getFirst().equals(player.uuid()));
+            if(index > TOPPLAYERAMOUNT){
+                sb.append("\n[accent]* * *[]\n");
+                sb.append(String.format("%d : %s[][][][][] @ %d\n", index+1, lb_array.get(index).third, lb_array.get(index).getSecond()));
+            }
+            sb.append("\n[grey] Updated after mapchange...[]");
+            Call.infoMessage(player.con, sb.toString());
         });
-
-         */
     }
 
     private void loadTimings(ObjectMap<String, Long> timings){
@@ -252,5 +251,44 @@ public class pvpStats extends Plugin {
         //clear the old value
         playerInfo.remove(oldUUID);
         return tpi;
+    }
+
+    public void sortLeaderboard(){
+        lb_array.clear();
+        //
+        Seq<TTriple<String, Integer, String>> presort = new Seq<>();
+        for(ObjectIntMap.Entry<String> e: playerPoints.entries()){
+            presort.add(new TTriple<String, Integer, String>(e.key, e.value, Vars.netServer.admins.getInfo(e.key).lastName));
+        }
+
+        //now sort on value
+        presort.sort(Comparator.comparingInt(TTriple::getSecond));
+        presort.reverse();
+        lb_array.set(presort);
+        //Administration.PlayerInfo a = Vars.netServer.admins.getInfo(presort.get(0).getFirst());
+    }
+
+    class TTriple<T1, T2, T3>{
+        T1 first;
+        T2 second;
+        T3 third;
+
+        public TTriple(T1 first, T2 second, T3 third){
+            this.first = first;
+            this.second = second;
+            this.third = third;
+        }
+
+        public T1 getFirst(){
+            return this.first;
+        }
+
+        public T2 getSecond(){
+            return this.second;
+        }
+
+        public T3 getThird(){
+            return this.third;
+        }
     }
 }

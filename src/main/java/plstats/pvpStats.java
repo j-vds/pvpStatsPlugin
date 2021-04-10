@@ -11,7 +11,6 @@ import mindustry.game.EventType.*;
 import mindustry.game.Team;
 import mindustry.gen.*;
 import mindustry.mod.Plugin;
-import mindustry.net.Administration;
 import mindustry.world.blocks.storage.CoreBlock;
 
 import java.util.Comparator;
@@ -50,9 +49,10 @@ public class pvpStats extends Plugin {
         Events.on(PlayerJoin.class, event -> {
             //save the timer!
             event.player.sendMessage("[gold] Beta version[][white] - The number before your name equals your PVP score[]");
+            event.player.sendMessage("[grey] more info: J-VdS - pvpStatsPlugin[]");
             playerInfo.put(event.player.uuid(), new timePlayerInfo(event.player));
 
-            uuidBackUp.put(event.player.name().substring(event.player.name().indexOf("#")+1), event.player.uuid());
+            uuidBackUp.put(Strings.stripColors(event.player.name().substring(event.player.name().indexOf("#")+1)), event.player.uuid());
         });
 
         Events.on(PlayerLeave.class, event -> {
@@ -71,7 +71,7 @@ public class pvpStats extends Plugin {
                playerInfo.remove(event.player.uuid());
             }
 
-            uuidBackUp.remove(event.player.name().substring(event.player.name().indexOf("#")+1));
+            uuidBackUp.remove(Strings.stripColors(event.player.name().substring(event.player.name().indexOf("#")+1)));
         });
 
         //detect if player changes team via a chatcommand
@@ -104,6 +104,7 @@ public class pvpStats extends Plugin {
                         if(tpi == null){
                             Log.info("<pvpStats> Kicked @ because he changed his UUID", p.name);
                             Call.kick(p.con, "changed UUID mid game\n[sky]Go to discord for more info...");
+                            continue;
                         }
                     }
 
@@ -157,7 +158,8 @@ public class pvpStats extends Plugin {
             //should be done directly
             StringBuilder sb = new StringBuilder();
             sb.append("[green]-*- Leaderboard -*-[]\n");
-            for (int i=0; i < TOPPLAYERAMOUNT; i++){
+            int end = (TOPPLAYERAMOUNT < lb_array.size) ? TOPPLAYERAMOUNT : lb_array.size;
+            for (int i=0; i < end; i++){
                 sb.append(String.format("%d : %s[][][][][] @ %d\n", i+1, lb_array.get(i).getThird(), lb_array.get(i).getSecond()));
             }
 
@@ -234,7 +236,7 @@ public class pvpStats extends Plugin {
         Log.info("<pvpStats> UUID changed - Possible hacker: @", p.name);
         //check for the name of a player
 
-        String oldName = p.name().substring(p.name().indexOf("#")+1);
+        String oldName = Strings.stripColors(p.name().substring(p.name().indexOf("#")+1));
         if(!uuidBackUp.containsKey(oldName)){
             return null;
         }

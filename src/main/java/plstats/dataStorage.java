@@ -156,21 +156,21 @@ public class dataStorage {
         }catch (Exception e){
             Log.info("<pvpStats> Failed to make .json file.");
         }
-        pvpStats = updatedStats;
+        this.pvpStats = updatedStats;
         this.writing = false;
         Log.info("<pvpStats> writing done");
-        if(writeCount > 10){
-            writeCount = 0;
+        if(this.writeCount > 10){
+            this.writeCount = 0;
             writeBackUp(totalPathBU);
         }else{
-            writeCount++;
+            this.writeCount++;
         }
     }
 
     public void writeBackUp(String path){
         Log.info("<pvpStats> writing BACKUP of pvpstats...");
         try {
-            Files.write(Paths.get(path), pvpStats.toString().getBytes());
+            Files.write(Paths.get(path), this.pvpStats.toString().getBytes());
         }catch (Exception e){
             Log.info("<pvpStats> Failed to make back up json file.");
         }

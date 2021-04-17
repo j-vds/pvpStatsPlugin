@@ -16,6 +16,9 @@ import mindustry.world.blocks.storage.CoreBlock;
 import java.util.Comparator;
 
 public class pvpStats extends Plugin {
+    private static boolean DEBUGPRINT = false;
+    private debugPrinter printer;
+
     private long minScoreTime;
     private long rageTime; // 45 seconds
     private long teamSwitchScore; // if you switch 30 seconds before your team loses a core you still get deducted some points
@@ -38,6 +41,8 @@ public class pvpStats extends Plugin {
         uuidBackUp = new ObjectMap<>();
         loadTimings(dS.getTimings());
 
+        //printcalls
+        this.printer = new debugPrinter(DEBUGPRINT);
         //before player joins
         Events.on(PlayerConnect.class, event ->{
         //change the name of the player
@@ -49,7 +54,7 @@ public class pvpStats extends Plugin {
         Events.on(PlayerJoin.class, event -> {
             //save the timer!
             event.player.sendMessage("[gold] Beta version[][white] - The number before your name equals your PVP score[]");
-            event.player.sendMessage("[grey] more info: J-VdS - pvpStatsPlugin[]");
+            event.player.sendMessage("[sky] --> pvpStatsPlugin[]");
             playerInfo.put(event.player.uuid(), new timePlayerInfo(event.player));
 
             uuidBackUp.put(Strings.stripColors(event.player.name().substring(event.player.name().indexOf("#")+1)), event.player.uuid());
@@ -72,6 +77,9 @@ public class pvpStats extends Plugin {
             }
 
             uuidBackUp.remove(Strings.stripColors(event.player.name().substring(event.player.name().indexOf("#")+1)));
+
+            //check array of players that recently left?
+
         });
 
         //detect if player changes team via a chatcommand
@@ -87,7 +95,7 @@ public class pvpStats extends Plugin {
                if(event.tile.build.team.cores().size <= 1){
                    Call.sendMessage(String.format("[gold] %s lost...", event.tile.build.team.name));
                    //other player get a point
-                   updatePoints(event.tile.team(), -1, 1, false);
+                   updatePoints(event.tile.team(), -1, 1);
 
                }
            }
@@ -121,8 +129,10 @@ public class pvpStats extends Plugin {
             Log.info(String.format("Winner %s",event.winner));
             //new map
             //updatePoints(event.winner, 1, -1, true);
-            //update the JSON file
-            Core.app.post(() -> dS.writeData(playerPoints));
+            //update the JSON file -- run in new thread!
+            new Thread(()-> dS.writeData(playerPoints)).run();
+            //Core.app.post(() -> dS.writeData(playerPoints));
+
             //clear player history after 3 seconds
             Timer.schedule(() -> playerInfo.values().forEach(timePlayerInfo::reset),3f);
         });
@@ -132,7 +142,8 @@ public class pvpStats extends Plugin {
     @Override
     public void registerServerCommands(CommandHandler handler){
         handler.register("writestats", "update the json stats file", (args)->{
-           Core.app.post(() -> dS.writeData(playerPoints));
+            new Thread(()-> dS.writeData(playerPoints)).run();
+            //Core.app.post(() -> dS.writeData(playerPoints));
         });
 
         handler.register("pvp_timers","[update/show]", "update the timings", (args)->{
@@ -179,7 +190,8 @@ public class pvpStats extends Plugin {
         teamSwitchScore = timings.get("teamSwitchScore");
     }
 
-    private void updatePoints(Team selectTeam, int addSelect, int addOther, boolean write){
+    private void updatePoints(Team selectTeam, int addSelect, int addOther){
+        Long testtime = System.currentTimeMillis();
         Seq<Team> validTeams = new Seq<>();
         timePlayerInfo t;
         Seq<String> tbremoved = new Seq<>();
@@ -187,19 +199,19 @@ public class pvpStats extends Plugin {
             t = playerInfo.get(uuid);
             //long enough on the server
             if(!t.canUpdate(minScoreTime)){
-                System.out.println("cant update");
+                printer.println("cant update");
                 continue;
             }
             // if the player left
             if(!t.rageQuit(rageTime) && !t.playing){
-                System.out.println("left");
+                printer.println("left");
                 tbremoved.add(uuid);
                 //playerInfo.remove(uuid);
                 continue;
             }
 
             if(t.team() == selectTeam){
-                System.out.println("loser points");
+                printer.println("loser points");
                 playerPoints.put(uuid, playerPoints.get(uuid,0)+addSelect);
             }else{
                 //check evasion!
@@ -209,11 +221,11 @@ public class pvpStats extends Plugin {
                 }else{
                     if(validTeams.contains(t.team())) {
                         playerPoints.put(uuid, playerPoints.get(uuid,0)+addOther);
-                        System.out.println("winner points");
+                        printer.println("winner points");
                     }else{
                         //check if valid
                         if(t.team().cores().size > 0){
-                            System.out.println("winner points");
+                            printer.println("winner points");
                             validTeams.add(t.team());
                             playerPoints.put(uuid, playerPoints.get(uuid, 0)+addOther);
                         }
@@ -222,14 +234,11 @@ public class pvpStats extends Plugin {
                 }
             }
             // UPDATE PLAYER NAMES
-            String oldName = t.name().substring(t.name().indexOf("#")+1);
+            String oldName = t.name().substring(t.name().indexOf("#")+3);
             t.name(String.format("[sky]%d [][white]#[]%s", playerPoints.get(uuid, 0), oldName));
         }
         tbremoved.forEach(u -> playerInfo.remove(u));
-
-        if(write){
-            Core.app.post(() -> dS.writeData(playerPoints));
-        }
+        Log.info("<pvpStats> Updated scores @ ms", System.currentTimeMillis()- testtime);
     }
 
     private timePlayerInfo changedUUID(Player p){
@@ -291,6 +300,26 @@ public class pvpStats extends Plugin {
 
         public T3 getThird(){
             return this.third;
+        }
+    }
+
+    class debugPrinter{
+        boolean print;
+
+        public debugPrinter(boolean output){
+            this.print = output;
+        }
+
+        void println(String s){
+            if(this.print) {
+                System.out.println(s);
+            }
+        }
+
+        void println(int i){
+            if(this.print){
+                System.out.println(i);
+            }
         }
     }
 }

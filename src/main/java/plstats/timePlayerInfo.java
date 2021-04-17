@@ -67,7 +67,7 @@ public class timePlayerInfo {
 
     // call this last
     public boolean teamSwitchEvade(long threshold, Team lostTeam){
-        System.out.println(teamTimer.toString());
+        //System.out.println(teamTimer.toString());
         if(!teamTimer.containsKey(lostTeam)){
             return false;
         }else if(teamTimer.get(lostTeam) + threshold > System.currentTimeMillis()){

@@ -11,13 +11,14 @@ repositories{
 
 ext{
     //the build number that this plugin is made for
-    mindustryVersion = 'v122.1'
+    mindustryVersion = 'v127'
 }
 
 dependencies{
     compileOnly "com.github.Anuken.Arc:arc-core:$mindustryVersion"
     compileOnly "com.github.Anuken.Mindustry:core:$mindustryVersion"
-    compile group: 'org.json', name: 'json', version: '20201115'
+    // https://mvnrepository.com/artifact/org.json/json
+    implementation 'org.json:json:20210307'
 }
 
 jar{

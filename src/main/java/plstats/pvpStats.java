@@ -90,7 +90,7 @@ public class pvpStats extends Plugin {
         });
 
         Events.on(EventType.BlockDestroyEvent.class, event -> {
-           if(event.tile.build instanceof CoreBlock.CoreBuild && !Vars.state.gameOver){
+           if(event.tile.build instanceof CoreBlock.CoreBuild && !Vars.state.gameOver && event.tile.build.team != Team.derelict){
                Log.info("Core destroyed @ ", event.tile.build.team);
                if(event.tile.build.team.cores().size <= 1){
                    Call.sendMessage(String.format("[gold] %s lost...", event.tile.build.team.name));
